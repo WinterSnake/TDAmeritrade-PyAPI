@@ -1,0 +1,9 @@
+# Python: Cache
+__pycache__
+
+# Python: Libraries
+.libs
+
+# Editor: Vim
+*.swp
+.tmux-session
