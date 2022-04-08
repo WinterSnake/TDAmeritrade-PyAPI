@@ -12,3 +12,4 @@ auth_callback: str = (
     "https://auth.tdameritrade.com/auth?response_type"
     "=code&client_id={}&redirect_uri={}"
 )
+auth_token: str = "/v1/oauth2/token"
