@@ -9,6 +9,7 @@
 ## Imports
 from datetime import datetime
 from typing import TypedDict
+from urllib.parse import quote
 
 import aiohttp
 
@@ -37,3 +38,26 @@ class ClientSession(aiohttp.ClientSession):
         self.expirations: ExpirationDict = {
             'access': None, 'refresh': refresh_token_expiration
         }
+
+    # -Properties
+    @property
+    def authorization_id(self) -> str:
+        return self.id + "@AMER.OAUTHAP"
+
+    @property
+    def authorization_url(self) -> str:
+        return urls.auth_callback.format(
+            quote(self.authorization_id), quote(self.callback_url)
+        )
+
+    @property
+    def callback_url(self) -> str:
+        return self._callback_url[0] + ':' + str(self._callback_url[1])
+
+    @property
+    def access_token_expiration(self) -> datetime | None:
+        return self.expirations['access']
+
+    @property
+    def refresh_token_expiration(self) -> datetime | None:
+        return self.expirations['refresh']
