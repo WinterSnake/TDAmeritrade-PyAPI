@@ -13,3 +13,11 @@ auth_callback: str = (
     "=code&client_id={}&redirect_uri={}"
 )
 auth_token: str = "/v1/oauth2/token"
+
+
+## Functions
+def user_principals(subscription_keys: bool = False) -> str:
+    """"""
+    return "/v1/userprincipals" + (
+        "/streamersubscriptionkeys" if subscription_keys else ''
+    )
