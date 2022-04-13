@@ -77,43 +77,6 @@ class ClientSession(aiohttp.ClientSession):
         return url
 
     # -Instance Methods: Public
-    async def ws_connect(self) -> ClientWebSocket:
-        async with self.get(
-            urls.user_principals(), params={
-                'fields': ["streamerConnectionInfo", "streamerSubscriptionKeys"]
-            }
-        ) as response:
-            dict_ = await response.json()
-            account: dict = dict_['accounts'][0]
-            account_id: int = account['accountId']
-            streamer_info: dict = dict_['streamerInfo']
-            app_id: str = streamer_info['appId']
-            token: str = streamer_info['token']
-            url: str = "wss://" + streamer_info['streamerSocketUrl'] + "/ws"
-            credentials = {
-                'userid': account_id,
-                'token': token,
-                'company': account['company'],
-                'segment': account['segment'],
-                'cddomain': account['accountCdDomainId'],
-                'usergroup': streamer_info['userGroup'],
-                'accesslevel': streamer_info['accessLevel'],
-                'authorized': "Y",
-                'timestamp': int(datetime.strptime(
-                    streamer_info['tokenTimestamp'], "%Y-%m-%dT%H:%M:%S%z"
-                ).timestamp() * 1000),
-                'appid': app_id,
-                'acl': streamer_info['acl'],
-            }
-            websocket = await self._ws_connect(url)
-            websocket.app_id = app_id
-            websocket.account_id = account_id
-            await websocket.send_message(
-                "ADMIN", "LOGIN", token=token, version="1.0",
-                credential=urlencode(credentials)
-            )
-            return websocket
-
     async def renew_tokens(self, renew_refresh_token: bool = False) -> None:
         '''Renew access + refresh tokens for TDA Session'''
         auth_dict: AuthorizationDict = {
