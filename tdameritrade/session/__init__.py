@@ -77,6 +77,42 @@ class ClientSession(aiohttp.ClientSession):
         return url
 
     # -Instance Methods: Public
+    async def get_accounts(
+        self, id_: int | None = None, orders: bool = False, positions: bool = False
+    ) -> aiohttp.ClientResponse:
+        '''Get TDAmeritrade Account by list of all or single by ID'''
+        fields: list[str] = []
+        if orders:
+            fields.append("orders")
+        if positions:
+            fields.append("positions")
+        return await self.get(urls.account(id_), params={'fields': fields})
+
+    async def get_streamer_subscription_keys(
+        self, account_ids: list[int] = []
+    ) -> aiohttp.ClientResponse:
+        '''Get streamer subscription keys for accounts'''
+        return await self.get(
+            urls.user_principals(subscription_keys=True),
+            params={'accountIds': account_ids}
+        )
+
+    async def get_user_principals(
+        self, preferences: bool = False, streamer_info: bool = False,
+        streamer_keys: bool = False, surrogate_ids: bool = False
+    ) -> aiohttp.ClientResponse:
+        '''Get user principals for session'''
+        fields = []
+        if preferences:
+            fields.append("preferences")
+        if streamer_info:
+            fields.append("streamerConnectionInfo")
+        if streamer_keys:
+            fields.append("streamerSubscriptionKeys")
+        if surrogate_ids:
+            fields.append("surrogateIds")
+        return await self.get(urls.user_principals(), params={'fields': fields})
+
     async def renew_tokens(self, renew_refresh_token: bool = False) -> None:
         '''Renew access + refresh tokens for TDA Session'''
         auth_dict: AuthorizationDict = {
@@ -96,31 +132,6 @@ class ClientSession(aiohttp.ClientSession):
             'code': unquote(code) if decode else code,
         }
         await self._authorize(auth_dict)
-
-    async def streamer_subscription_keys(
-        self, account_ids: list[int] = []
-    ) -> aiohttp.ClientResponse:
-        '''Get streamer subscription keys for accounts'''
-        return await self.get(
-            urls.user_principals(subscription_keys=True),
-            params={'accountIds': account_ids}
-        )
-
-    async def user_principals(
-        self, preferences: bool = False, streamer_info: bool = False,
-        streamer_keys: bool = False, surrogate_ids: bool = False
-    ) -> aiohttp.ClientResponse:
-        '''Get user principals for session'''
-        fields = []
-        if preferences:
-            fields.append("preferences")
-        if streamer_info:
-            fields.append("streamerConnectionInfo")
-        if streamer_keys:
-            fields.append("streamerSubscriptionKeys")
-        if surrogate_ids:
-            fields.append("surrogateIds")
-        return await self.get(urls.user_principals(), params={'fields': fields})
 
     # -Properties
     @property
