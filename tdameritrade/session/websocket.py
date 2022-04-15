@@ -8,10 +8,18 @@
 
 ## Imports
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlencode
 
 import aiohttp
+
+## Constants
+MessageDict = TypedDict(
+    "MessageDict", {
+        'service': str, 'command': str, 'requestid': int,
+        'account': str, 'source': int, 'parameters': dict[str, Any]
+    }, total=False
+)
 
 
 ## Classes
@@ -24,12 +32,11 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
         self.app_id: str | None = None
         self.account_id: int | None = None
         self.request_id: int = 0
-        self.requests: list[RequestDict] = []
 
     # -Instance Methods: Private
     def _create_message(
-        self, service: str, command: str, *, require: bool = False, **kwargs
-    ) -> None:
+        self, service: str, command: str, **kwargs
+    ) -> MessageDict:
         '''Create formatted request for sending'''
         request: dict = {
             'service': service,
@@ -37,11 +44,14 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
             'requestid': self.request_id,
             'account': self.app_id,
             'source': self.account_id,
+            'parameters': kwargs if kwargs else {}
         }
-        if kwargs:
-            request['parameters'] = kwargs
         self.request_id += 1
-        self.requests.append(request)
+        return request
+
+    async def _send_message(self, request: MessageDict) -> None:
+        '''Send formatted request as list'''
+        await self.send_json({'requests': [request]})
 
     # -Instance Methods: Public
     async def login(
@@ -52,7 +62,7 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
         '''Login through websocket authentication'''
         self.app_id = app_id
         self.account_id = account_id
-        self._create_message(
+        msg: MessageDict = self._create_message(
             "ADMIN", "LOGIN", token=token, version="1.0",
             qoslevel=qos, credential=urlencode({
                 'userid': account_id,
@@ -68,16 +78,14 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
                 'acl': acl,
             })
         )
+        await self._send_message(msg)
 
     async def logout(self) -> None:
         '''Logout from websocket authentication'''
-        self._create_message("ADMIN", "LOGOUT")
-
-    async def send_messages(self) -> None:
-        '''Sends all stored requests and clears buffer'''
-        await self.send_json({'requests': self.requests})
-        self.requests = []
+        msg: MessageDict = self._create_message("ADMIN", "LOGOUT")
+        await self._send_message(msg)
 
     async def quality_of_service(self, qos: int) -> None:
         '''Update rate of data being streamed from TDAmeritrade'''
-        self._create_message("ADMIN", "QOS", qoslevel=qos)
+        smsg: MessageDict = elf._create_message("ADMIN", "QOS", qoslevel=qos)
+        await self._send_message(msg)
