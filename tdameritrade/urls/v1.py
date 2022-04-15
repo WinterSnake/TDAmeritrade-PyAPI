@@ -14,9 +14,9 @@ options: str = market_data + "chains"
 
 
 ## Functions
-def accounts(id_: int | None = None) -> str:
+def accounts(account_id: int | None = None) -> str:
     """Account endpoints"""
-    return f"{version}accounts" + ('' if id_ is None else f"/{id_}")
+    return f"{version}accounts" + ('' if account_id is None else f"/{account_id}")
 
 
 def historicals(symbol: str) -> str:
@@ -49,9 +49,9 @@ def movers(index: str) -> str:
     return market_data + index + "/movers"
 
 
-def preferences(id_: int) -> str:
+def preferences(account_id: int) -> str:
     """Account preferences endpoint"""
-    return accounts(id_) + "/preferences"
+    return accounts(account_id) + "/preferences"
 
 
 def quotes(symbol: str | None = None) -> str:
