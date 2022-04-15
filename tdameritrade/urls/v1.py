@@ -8,15 +8,25 @@
 
 ## Constants
 version: str = "/v1/"
-auth: str = f"{version}oauth2/token"
+oauth2: str = f"{version}oauth2/token"
 market_data: str = f"{version}marketdata/"
-option_chain: str = market_data + "chains"
+options: str = market_data + "chains"
 
 
 ## Functions
 def accounts(id_: int | None = None) -> str:
     """Account endpoints"""
     return f"{version}accounts" + ('' if id_ is None else f"/{id_}")
+
+
+def historicals(symbol: str) -> str:
+    """Market historical endpoint"""
+    return market_data + f"{symbol}/pricehistory"
+
+
+def instruments(cusip: str | None = None) -> str:
+    """Instrumental data endpoints"""
+    return f"{version}/instruments" + ('' if cusip is None else f"/{cusip}")
 
 
 def orders(account_id: int | None = None, order_id: int | None = None) -> str:
@@ -42,6 +52,11 @@ def movers(index: str) -> str:
 def preferences(id_: int) -> str:
     """Account preferences endpoint"""
     return accounts(id_) + "/preferences"
+
+
+def quotes(symbol: str | None = None) -> str:
+    """Market quote endpoints"""
+    return market_data + ('' if symbol is None else f"{symbol}/") + "quotes"
 
 
 def saved_orders(account_id: int, saved_order_id: int | None = None) -> str:
