@@ -8,13 +8,20 @@
 
 ## Imports
 from . import v1
+from urllib.parse import quote
 
 ## Constants
-base: str = "https://api.tdameritrade.com"
-callback: str = (
-    "https://auth.tdameritrade.com/auth?response_type"
-    "=code&client_id={}&redirect_uri={}"
-)
 __all__ = (
-    base, callback, v1
+    "base", "callback", v1
 )
+base: str = "https://api.tdameritrade.com"
+
+
+## Functions
+def callback(id_: str, callback_address: tuple[str, int]) -> str:
+    """Callback authorization endpoint"""
+    address: str = f"{callback_address[0]}:{callback_address[1]}"
+    return (
+        "https://auth.tdameritrade.com/auth?response_type"
+        f"=code&client_id={quote(id_)}&redirect_uri={quote(address)}"
+    )
