@@ -31,6 +31,13 @@ def preferences(id_: int) -> str:
     return accounts(id_) + "/preferences"
 
 
+def saved_orders(account_id: int, order_id: int | None = None) -> str:
+    """Profile + account order endpoints"""
+    return accounts(account_id) + "/savedorders" + (
+        '' if order_id is None else f"/{order_id}"
+    )
+
+
 def user_principals(subscription_keys: bool = False) -> str:
     """Session user principal + subscription endpoints"""
     return f"{version}userprincipals" + (
