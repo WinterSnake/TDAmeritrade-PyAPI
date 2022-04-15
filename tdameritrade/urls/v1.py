@@ -31,10 +31,17 @@ def preferences(id_: int) -> str:
     return accounts(id_) + "/preferences"
 
 
-def saved_orders(account_id: int, order_id: int | None = None) -> str:
-    """Profile + account order endpoints"""
+def saved_orders(account_id: int, saved_order_id: int | None = None) -> str:
+    """Account saved order endpoints"""
     return accounts(account_id) + "/savedorders" + (
-        '' if order_id is None else f"/{order_id}"
+        '' if saved_order_id is None else f"/{saved_order_id}"
+    )
+
+
+def transactions(account_id: int, transaction_id: int | None = None) -> str:
+    """Account transaction endpoints"""
+    return accounts(account_id) + "/transactions" + (
+        '' if transaction_id is None else f"/{transaction_id}"
     )
 
 
