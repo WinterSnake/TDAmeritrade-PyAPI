@@ -9,7 +9,7 @@
 ## Imports
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
-from urllib.parse import quote, unquote, urlencode
+from urllib.parse import quote, unquote
 
 import aiohttp
 from yarl import URL
@@ -96,6 +96,22 @@ class ClientSession(aiohttp.ClientSession):
             'code': unquote(code) if decode else code,
         }
         await self._authorize(auth_dict)
+
+    async def user_principals(
+        self, preferences: bool = False, streamer_info: bool = False,
+        streamer_keys: bool = False, surrogate_ids: bool = False
+    ) -> aiohttp.ClientResponse:
+        '''Get user principals request'''
+        fields = []
+        if preferences:
+            fields.append("preferences")
+        if streamer_info:
+            fields.append("streamerConnectionInfo")
+        if streamer_keys:
+            fields.append("streamerSubscriptionKeys")
+        if surrogate_ids:
+            fields.append("surrogateIds")
+        return await self.get(urls.user_principals(), params={'fields': fields})
 
     # -Properties
     @property
