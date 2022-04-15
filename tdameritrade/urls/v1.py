@@ -26,6 +26,12 @@ def orders(account_id: int | None = None, order_id: int | None = None) -> str:
     )
 
 
+def market_hours(market: str | None = None) -> str:
+    '''Market hour endpoints'''
+    # -Acceptable values: EQUITY, OPTION, FUTURE, BOND, or FOREX
+    return f"{version}marketdata" + ('' if market is None else f"/{market}") + "/hours"
+
+
 def preferences(id_: int) -> str:
     """Account preferences endpoint"""
     return accounts(id_) + "/preferences"
