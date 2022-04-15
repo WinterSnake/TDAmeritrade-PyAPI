@@ -16,5 +16,5 @@ callback: str = (
     "=code&client_id={}&redirect_uri={}"
 )
 __all__ = (
-    v1, base, callback
+    base, callback, v1
 )

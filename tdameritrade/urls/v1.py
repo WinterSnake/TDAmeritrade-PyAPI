@@ -17,6 +17,15 @@ def accounts(id_: int | None = None) -> str:
     return f"{version}accounts" + ('' if id_ is None else f"/{id_}")
 
 
+def orders(account_id: int | None = None, order_id: int | None = None) -> str:
+    """Profile + account order endpoints"""
+    if account_id is None:
+        return f"{version}orders"
+    return accounts(account_id) + "/orders" + (
+        '' if order_id is None else f"/{order_id}"
+    )
+
+
 def preferences(id_: int) -> str:
     """Account preferences endpoint"""
     return accounts(id_) + "/preferences"
