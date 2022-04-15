@@ -97,11 +97,20 @@ class ClientSession(aiohttp.ClientSession):
         }
         await self._authorize(auth_dict)
 
+    async def streamer_subscription_keys(
+        self, account_ids: list[int] = []
+    ) -> aiohttp.ClientResponse:
+        '''Get streamer subscription keys for accounts'''
+        return await self.get(
+            urls.user_principals(subscription_keys=True),
+            params={'accountIds': account_ids}
+        )
+
     async def user_principals(
         self, preferences: bool = False, streamer_info: bool = False,
         streamer_keys: bool = False, surrogate_ids: bool = False
     ) -> aiohttp.ClientResponse:
-        '''Get user principals request'''
+        '''Get user principals for session'''
         fields = []
         if preferences:
             fields.append("preferences")
