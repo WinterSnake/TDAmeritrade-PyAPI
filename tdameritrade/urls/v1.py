@@ -14,7 +14,7 @@ auth: str = f"{version}oauth2/token"
 ## Functions
 def accounts(id_: int | None = None) -> str:
     """Account endpoints"""
-    return f"{version}accounts" + (f"/{id_}" if id_ else '')
+    return f"{version}accounts" + ('' if id_ is None else f"/{id_}")
 
 
 def preferences(id_: int) -> str:
@@ -26,4 +26,13 @@ def user_principals(subscription_keys: bool = False) -> str:
     """Session user principal + subscription endpoints"""
     return f"{version}userprincipals" + (
         "/streamersubscriptionkeys" if subscription_keys else ''
+    )
+
+
+def watchlists(account_id: int | None = None, watchlist_id: int | None = None) -> str:
+    """Profile + account watchlist endpoints"""
+    if account_id is None:
+        return accounts() + "/watchlists"
+    return accounts(account_id) + "/watchlists" + (
+        '' if watchlist_id is None else f"/{watchlist_id}"
     )
