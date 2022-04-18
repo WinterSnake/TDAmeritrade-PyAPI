@@ -7,9 +7,9 @@
 ##-------------------------------##
 
 ## Imports
-from .. import urls
-from ..session import ClientSession
-from ..websocket import ClientWebSocket
+from . import urls
+from .session import ClientSession
+from .websocket import ClientWebSocket
 
 
 ## Classes
@@ -22,18 +22,19 @@ class Profile:
 
     # -Instance Methods
     async def user_principals(
-        self, preferences: bool = False, surrogate_ids: bool = False,
-        streamer_keys: bool = False, streamer_info: bool = False,
+        self, preferences: bool = False, streamer_keys: bool = False,
+        streamer_info: bool = False, surrogate_ids: bool = False,
     ) -> None:
         '''Get user principals and additional information for profile and accounts'''
-        # -Populate fields
         fields: list[str] = []
         if preferences:
             fields.append("preferences")
-        if surrogate_ids:
-            fields.append("surrogateIds")
         if streamer_keys:
             fields.append("streamerSubscriptionKeys")
         if streamer_info:
             fields.append("streamerConnectionInfo")
-        return await self._session.get(urls.v1.user_principals(), params={'fields': fields})
+        if surrogate_ids:
+            fields.append("surrogateIds")
+        return await self._session.get(
+            urls.v1.user_principals(), params={'fields': ','.join(field for field in fields)}
+        )
