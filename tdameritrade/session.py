@@ -58,6 +58,12 @@ class ClientSession(aiohttp.ClientSession):
                 seconds=response_dict['refresh_token_expires_in']
             )
 
+    def _build_url(self, url: str | URL) -> URL:
+        url = URL(url)
+        if self._base_url and not url.is_absolute():
+            url = self._base_url.join(url)
+        return url
+
     # -Instance Methods: Public
     async def renew_tokens(self, renew_refresh_token: bool = False) -> None:
         '''Renew access (and optionally refresh) tokens'''
