@@ -23,6 +23,25 @@ class Profile:
         self._session: ClientSession = session
 
     # -Instance Methods
+    async def create_websocket(self, quality_of_service: int = 2) -> ClientWebSocket:
+        '''Create and authenticate a websocket object'''
+        data: dict = await self.user_principals(
+            streamer_keys=True, streamer_info=True
+        )
+        data = await data.json()
+        account: dict = data['accounts'][0]
+        stream_info: dict = data['streamerInfo']
+        url: str = "wss://" + stream_info['streamerSocketUrl']  + "/ws"
+        websocket = await self._session.ws_connect(url)
+        await websocket.login(
+            stream_info['appId'], account['accountId'], stream_info['token'],
+            account['company'], account['segment'], account['accountCdDomainId'],
+            stream_info['userGroup'], stream_info['accessLevel'],
+            datetime.strptime(stream_info['tokenTimestamp'], "%Y-%m-%dT%H:%M:%S%z"),
+            stream_info['acl'], quality_of_service
+        )
+        return websocket
+
     async def user_principals(
         self, preferences: bool = False, streamer_keys: bool = False,
         streamer_info: bool = False, surrogate_ids: bool = False,
@@ -40,22 +59,3 @@ class Profile:
         return await self._session.get(
             urls.v1.user_principals(), params={'fields': ','.join(field for field in fields)}
         )
-
-    async def websocket(self) -> ClientWebSocket:
-        '''Create and authenticate a websocket object'''
-        data: dict = await self.user_principals(
-            streamer_keys=True, streamer_info=True
-        )
-        data = await data.json()
-        account: dict = data['accounts'][0]
-        stream_info: dict = data['streamerInfo']
-        url: str = "wss://" + stream_info['streamerSocketUrl']  + "/ws"
-        websocket = await self._session.ws_connect(url)
-        await websocket.login(
-            stream_info['appId'], account['accountId'], stream_info['token'],
-            stream_info['userGroup'], account['company'], account['segment'],
-            account['accountCdDomainId'], stream_info['accessLevel'],
-            datetime.strptime(stream_info['tokenTimestamp'], "%Y-%m-%dT%H:%M:%S%z"),
-            stream_info['acl']
-        )
-        return websocket
