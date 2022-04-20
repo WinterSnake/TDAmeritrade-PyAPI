@@ -24,12 +24,12 @@ class ClientSession(aiohttp.ClientSession):
 
     # -Constructor
     def __init__(
-        self, id_: str, callback_address: tuple[str, int], *args, **kwargs
+        self, id_: str, callback_address: tuple[str, int], *args,
+        websocket: aiohttp.ClientWebSocketResponse = ClientWebSocket, **kwargs
     ) -> None:
-        if 'ws_response_class' not in kwargs:
-            kwargs['ws_response_class'] = ClientWebSocket
         super().__init__(
-            base_url=urls.base, raise_for_status=True, *args, **kwargs
+            base_url=urls.base, raise_for_status=True,
+            ws_response_class=websocket, *args, **kwargs
         )
         self.id: str = id_
         self.callback_address: tuple[str, int] = callback_address
