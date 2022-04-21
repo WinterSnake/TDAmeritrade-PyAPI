@@ -57,5 +57,6 @@ class Profile:
         if surrogate_ids:
             fields.append("surrogateIds")
         return await self._session.get(
-            urls.v1.user_principals(), params={'fields': ','.join(field for field in fields)}
+            urls.v1.user_principals(),
+            params={'fields': ','.join(field for field in fields)}
         )
