@@ -14,7 +14,7 @@ import aiohttp
 from yarl import URL
 
 from . import urls
-from .typing import ExpirationDict, Request_AuthorizationDict
+from .typing import ExpirationDict, Request_AuthorizationDict, Request_OrdersDict
 from .websocket import ClientWebSocket
 
 ## Constants
@@ -105,8 +105,12 @@ class ClientSession(aiohttp.ClientSession):
         )
 
     # --Orders
+    async def cancel_order(self, account_id: int, order_id: int) -> None:
+        '''Cancel order'''
+        return await self.delete(urls.v1.orders(account_id, order_id))
+
     async def get_order(self, account_id: int, order_id: int) -> aiohttp.ClientResponse:
-        '''Return HTTP response of order URL'''
+        '''Return HTTP response of order endpoint'''
         return await self.get(urls.v1.orders(account_id, order_id))
 
     async def get_orders(
@@ -114,9 +118,9 @@ class ClientSession(aiohttp.ClientSession):
         from_date: date | None = None, to_date: date | None = None,
         status: str = None  # -TODO: MAKE ENUM
     ) -> aiohttp.ClientResponse:
-        '''Return HTTP response of multiple order URLs'''
+        '''Return HTTP response of orders endpoints'''
         url: str
-        params = {}
+        params: Request_OrdersDict = {}
         if account_id is None:
             url = urls.v1.orders()
         else:
@@ -131,19 +135,27 @@ class ClientSession(aiohttp.ClientSession):
             params['toEnteredTime'] = to_date.strftime(FORMAT_DATE)
         return await self.get(url, params=params)
 
+    async def place_order(self, account_id: int) -> aiohttp.ClientResponse:
+        '''Place order and return HTTP response of order endpoint'''
+        raise NotImplementedError("ClientSession.place_order")
+
+    async def replace_order(self, account_id: int, order_id: int) -> aiohttp.ClientResponse:
+        '''Replace order and return HTTP response of order endpoint'''
+        raise NotImplementedError("ClientSession.replace_order")
+
     # --User Principals/Preferences
     async def get_user_principals(
-        self, preferences: bool = False, streamer_keys: bool = False,
-        streamer_info: bool = False, surrogate_ids: bool = False
+        self, preferences: bool = False, streamer_info: bool = False,
+        streamer_keys: bool = False, surrogate_ids: bool = False
     ) -> aiohttp.ClientResponse:
-        '''Return HTTP response of user principals URL'''
+        '''Return HTTP response of user principals endpoint'''
         fields: list[str] = []
         if preferences:
             fields.append("preferences")
-        if streamer_keys:
-            fields.append("streamerSubscriptionKeys")
         if streamer_info:
             fields.append("streamerConnectionInfo")
+        if streamer_keys:
+            fields.append("streamerSubscriptionKeys")
         if surrogate_ids:
             fields.append("surrogateIds")
         return await self.get(
