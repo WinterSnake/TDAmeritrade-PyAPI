@@ -12,7 +12,13 @@ from typing import Any, TypedDict
 
 
 ## Classes
-class AuthorizationDict(TypedDict, total=False):
+class ExpirationDict(TypedDict):
+    """Session expiration timestamp structure"""
+    access: datetime | None
+    refresh: datetime | None
+
+
+class Request_AuthorizationDict(TypedDict, total=False):
     """Session internal authorization structure"""
     access_type: str
     client_id: str  # -required
@@ -22,13 +28,13 @@ class AuthorizationDict(TypedDict, total=False):
     redirect_uri: str
 
 
-class ExpirationDict(TypedDict):
+class Request_OrdersDict(TypedDict):
     """Session expiration timestamp structure"""
     access: datetime | None
     refresh: datetime | None
 
 
-class RequestDict(TypedDict):
+class Request_WebSocketDict(TypedDict):
     """WebSocket request message structure"""
     account: str
     command: str

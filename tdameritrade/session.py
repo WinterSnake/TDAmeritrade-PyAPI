@@ -7,15 +7,18 @@
 ##-------------------------------##
 
 ## Imports
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import unquote
 
 import aiohttp
 from yarl import URL
 
 from . import urls
-from .typing import AuthorizationDict, ExpirationDict
+from .typing import ExpirationDict, Request_AuthorizationDict
 from .websocket import ClientWebSocket
+
+## Constants
+FORMAT_DATE: str = "%Y-%m-%d"
 
 
 ## Classes
@@ -37,7 +40,7 @@ class ClientSession(aiohttp.ClientSession):
         self.expirations: ExpirationDict = {'access': None, 'refresh': None}
 
     # -Instance Methods: Private
-    async def _authorize(self, auth_dict: AuthorizationDict) -> None:
+    async def _authorize(self, auth_dict: Request_AuthorizationDict) -> None:
         '''Internal authorization handling'''
         auth_dict['client_id'] = self.authorization_id
         async with self.post(urls.v1.oauth2, data=auth_dict) as response:
@@ -67,7 +70,7 @@ class ClientSession(aiohttp.ClientSession):
     # -Instance Methods: Public - Authorization
     async def renew_tokens(self, renew_refresh_token: bool = False) -> None:
         '''Renew access (and optionally refresh) tokens'''
-        auth_dict: AuthorizationDict = {
+        auth_dict: Request_AuthorizationDict = {
             'grant_type': "refresh_token",
             'refresh_token': self.refresh_token,
         }
@@ -77,7 +80,7 @@ class ClientSession(aiohttp.ClientSession):
 
     async def request_tokens(self, code: str, decode: bool = True) -> None:
         '''Request initial access + refresh tokens'''
-        auth_dict: AuthorizationDict = {
+        auth_dict: Request_AuthorizationDict = {
             'access_type': "offline",
             'code': unquote(code) if decode else code,
             'grant_type': "authorization_code",
@@ -100,6 +103,33 @@ class ClientSession(aiohttp.ClientSession):
             urls.v1.accounts(account_id),
             params={'fields': ','.join(field for field in fields)}
         )
+
+    # --Orders
+    async def get_order(self, account_id: int, order_id: int) -> aiohttp.ClientResponse:
+        '''Return HTTP response of order URL'''
+        return await self.get(urls.v1.orders(account_id, order_id))
+
+    async def get_orders(
+        self, account_id: int | None = None, max_results: int | None = None,
+        from_date: date | None = None, to_date: date | None = None,
+        status: str = None  # -TODO: MAKE ENUM
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of multiple order URLs'''
+        url: str
+        params = {}
+        if account_id is None:
+            url = urls.v1.orders()
+        else:
+            url = urls.v1.orders(account_id)
+        if from_date:
+            params['fromEnteredTime'] = from_date.strftime(FORMAT_DATE)
+        if max_results:
+            params['maxResults'] = max_results
+        if status:
+            params['status'] = status
+        if to_date:
+            params['toEnteredTime'] = to_date.strftime(FORMAT_DATE)
+        return await self.get(url, params=params)
 
     # --User Principals/Preferences
     async def get_user_principals(
