@@ -14,8 +14,8 @@ from typing import Any, TypedDict
 ## Classes
 class ExpirationDict(TypedDict):
     """Session expiration timestamp structure"""
-    access: datetime | None
-    refresh: datetime | None
+    access: datetime
+    refresh: datetime
 
 
 class Request_AuthorizationDict(TypedDict, total=False):
@@ -28,10 +28,10 @@ class Request_AuthorizationDict(TypedDict, total=False):
     redirect_uri: str
 
 
-class Request_OrdersDict(TypedDict):
+class Request_OrdersDict(TypedDict, total=False):
     """Session expiration timestamp structure"""
     fromEnteredTime: str
-    maxResults: str
+    maxResults: int
     status: str
     toEnteredTime: str
 

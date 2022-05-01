@@ -8,6 +8,9 @@
 
 ## Imports
 from datetime import datetime
+from typing import cast
+
+import aiohttp
 
 from . import urls
 from .session import ClientSession
@@ -20,19 +23,21 @@ class Profile:
 
     # -Constructor
     def __init__(self, session: ClientSession) -> None:
+        assert(issubclass(session._ws_response_class, ClientWebSocket))
         self._session: ClientSession = session
 
     # -Instance Methods
     async def create_websocket(self, quality_of_service: int = 2) -> ClientWebSocket:
         '''Create and authenticate a websocket object'''
-        data: dict = await self.get_user_principals(
+        response: aiohttp.ClientResponse = await self._session.get_user_principals(
             streamer_keys=True, streamer_info=True
         )
-        data = await data.json()
+        data: dict = await response.json()
         account: dict = data['accounts'][0]
         stream_info: dict = data['streamerInfo']
         url: str = "wss://" + stream_info['streamerSocketUrl']  + "/ws"
-        websocket = await self._session.ws_connect(url)
+        websocket: ClientWebSocket = cast(ClientWebSocket, await self._session.ws_connect(url))
+        assert isinstance(websocket, ClientWebSocket)
         await websocket.login(
             stream_info['appId'], account['accountId'], stream_info['token'],
             account['company'], account['segment'], account['accountCdDomainId'],

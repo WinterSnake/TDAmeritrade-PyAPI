@@ -12,7 +12,7 @@ from urllib.parse import quote
 
 ## Constants
 __all__ = (
-    "base", "callback", v1
+    "base", "callback", "v1"
 )
 base: str = "https://api.tdameritrade.com"
 

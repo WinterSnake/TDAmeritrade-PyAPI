@@ -22,11 +22,36 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
     # -Constructor
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.id: str | None = None
-        self.source: int | None = None
+        self.id: str = None  #type: ignore
+        self.source: int = None  #type: ignore
         self.request_counter: int = 0
 
-    # -Instance Methods: Public Primary
+    # -Instance Methods: Public - Handle
+    def create_message(
+        self, service: str, command: str, **kwargs
+    ) -> Request_WebSocketDict:
+        '''Create a formatted message request for sending'''
+        request: Request_WebSocketDict = {
+            'account': self.id,
+            'command': command,
+            'parameters': kwargs if kwargs else {},
+            'requestid': self.request_counter,
+            'service': service,
+            'source': self.source,
+        }
+        self.request_counter += 1
+        return request
+
+    async def send_messages(
+        self, requests: Request_WebSocketDict | list[Request_WebSocketDict]
+    ) -> None:
+        '''Send formatted message request or list of requests'''
+        if not isinstance(requests, list):
+            requests = [requests]
+        await self.send_json({'requests': requests})
+
+    # -Instance Methods: Public - TDAmeritrade
+    # --Admin
     async def login(
         self, id_: str, source_id: int, token: str,
         company: str, segment: str, domain: str, user_group: str, access_level: str,
@@ -35,7 +60,7 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
         '''Login request'''
         self.id = id_
         self.source = source_id
-        msg: RequestDict = self.create_message(
+        msg: Request_WebSocketDict = self.create_message(
             "ADMIN", "LOGIN", token=token, version="1.0",
             qoslevel=qos, credential=urlencode({
                 'accesslevel': access_level,
@@ -59,30 +84,6 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
         await self.send_messages(msg)
 
     async def quality_of_service(self, qos: int) -> None:  # -TODO: MAKE ENUM
-        '''Change data rate speed request'''
+        '''Data rate speed change request'''
         msg: Request_WebSocketDict = self.create_message("ADMIN", "QOS", qoslevel=qos)
         await self.send_messages(msg)
-
-    # -Instance Methods: Public Secondary
-    def create_message(
-        self, service: str, command: str, **kwargs
-    ) -> Request_WebSocketDict:
-        '''Create a formatted message request for sending'''
-        request: Request_WebSocketDict = {
-            'account': self.id,
-            'command': command,
-            'parameters': kwargs if kwargs else {},
-            'requestid': self.request_counter,
-            'service': service,
-            'source': self.source,
-        }
-        self.request_counter += 1
-        return request
-
-    async def send_messages(
-        self, requests: Request_WebSocketDict | list[Request_WebSocketDict]
-    ) -> None:
-        '''Send formatted message request or list of requests'''
-        if not isinstance(requests, list):
-            requests = [requests]
-        await self.send_json({'requests': requests})

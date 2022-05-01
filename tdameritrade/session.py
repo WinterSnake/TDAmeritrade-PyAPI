@@ -8,6 +8,7 @@
 
 ## Imports
 from datetime import date, datetime, timedelta, timezone
+from typing import Type
 from urllib.parse import unquote
 
 import aiohttp
@@ -27,17 +28,17 @@ class ClientSession(aiohttp.ClientSession):
 
     # -Constructor
     def __init__(
-        self, id_: str, callback_address: tuple[str, int], *args,
-        websocket: aiohttp.ClientWebSocketResponse = ClientWebSocket, **kwargs
+        self, id_: str, callback_address: tuple[str, int],
+        websocket: Type[aiohttp.ClientWebSocketResponse] = ClientWebSocket, **kwargs
     ) -> None:
         super().__init__(
-            base_url=urls.base, raise_for_status=True,
-            ws_response_class=websocket, *args, **kwargs
+            urls.base, raise_for_status=True,
+            ws_response_class=websocket, **kwargs
         )
         self.id: str = id_
         self.callback_address: tuple[str, int] = callback_address
-        self.refresh_token: str | None = None
-        self.expirations: ExpirationDict = {'access': None, 'refresh': None}
+        self.refresh_token: str = None  #type: ignore
+        self.expirations: ExpirationDict = {'access': None, 'refresh': None}  #type: ignore
 
     # -Instance Methods: Private
     async def _authorize(self, auth_dict: Request_AuthorizationDict) -> None:
@@ -99,7 +100,7 @@ class ClientSession(aiohttp.ClientSession):
             fields.append("orders")
         if positions:
             fields.append("positions")
-        return await self._session.get(
+        return await self.get(
             urls.v1.accounts(account_id),
             params={'fields': ','.join(field for field in fields)}
         )
@@ -107,7 +108,7 @@ class ClientSession(aiohttp.ClientSession):
     # --Orders
     async def cancel_order(self, account_id: int, order_id: int) -> None:
         '''Cancel order'''
-        return await self.delete(urls.v1.orders(account_id, order_id))
+        await self.delete(urls.v1.orders(account_id, order_id))
 
     async def get_order(self, account_id: int, order_id: int) -> aiohttp.ClientResponse:
         '''Return HTTP response of order endpoint'''
