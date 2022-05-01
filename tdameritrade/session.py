@@ -7,7 +7,10 @@
 ##-------------------------------##
 
 ## Imports
-from datetime import date, datetime, timedelta, timezone
+from collections.abc import Sequence
+from datetime import (
+    date, datetime, timedelta, timezone
+)
 from typing import Type
 from urllib.parse import unquote
 
@@ -15,7 +18,10 @@ import aiohttp
 from yarl import URL
 
 from . import urls
-from .typing import ExpirationDict, Request_AuthorizationDict, Request_OrdersDict
+from .typing import (
+    ExpirationDict,
+    Request_AuthorizationDict, Request_OrdersDict
+)
 from .websocket import ClientWebSocket
 
 ## Constants
@@ -94,7 +100,7 @@ class ClientSession(aiohttp.ClientSession):
     async def get_accounts(
         self, account_id: int | None = None, orders: bool = False, positions: bool = False
     ) -> aiohttp.ClientResponse:
-        '''Return HTTP response of account URLs'''
+        '''Return HTTP response of account/s endpoint'''
         fields: list[str] = []
         if orders:
             fields.append("orders")
@@ -119,7 +125,7 @@ class ClientSession(aiohttp.ClientSession):
         from_date: date | None = None, to_date: date | None = None,
         status: str = None  # -TODO: MAKE ENUM
     ) -> aiohttp.ClientResponse:
-        '''Return HTTP response of orders endpoints'''
+        '''Return HTTP response of orders endpoint'''
         url: str
         params: Request_OrdersDict = {}
         if account_id is None:
@@ -145,6 +151,17 @@ class ClientSession(aiohttp.ClientSession):
         raise NotImplementedError("ClientSession.replace_order")
 
     # --User Principals/Preferences
+    async def get_preferences(self, account_id: int) -> aiohttp.ClientResponse:
+        '''Return HTTP response of account preferences endpoint'''
+        return await self.get(urls.v1.preferences(account_id))
+
+    async def get_streamer_keys(self, account_ids: Sequence[int]) -> aiohttp.ClientResponse:
+        '''Return HTTP response of streamer keys endpoint'''
+        return await self.get(
+            urls.v1.user_principals(subscription_keys=True),
+            params={'accountIds': ','.join(str(account_id) for account_id in account_ids)}
+        )
+
     async def get_user_principals(
         self, preferences: bool = False, streamer_info: bool = False,
         streamer_keys: bool = False, surrogate_ids: bool = False
@@ -163,6 +180,10 @@ class ClientSession(aiohttp.ClientSession):
             urls.v1.user_principals(),
             params={'fields': ','.join(field for field in fields)}
         )
+
+    async def update_preferences(self, account_id: int) -> None:
+        '''Update account preferences'''
+        raise NotImplementedError("Session.update_preferences")
 
     # -Properties
     @property
