@@ -39,12 +39,13 @@ def orders(account_id: int | None = None, order_id: int | None = None) -> str:
 
 
 def market_hours(market: str | None = None) -> str:
+#-TODO: MAKE ENUM -- EQUITY, OPTION, FUTURE, BOND, FOREX
     """Market hour endpoints"""
-    # -Acceptable values: EQUITY, OPTION, FUTURE, BOND, or FOREX
     return market_data + ('' if market is None else f"{market}/") + "hours"
 
 
 def movers(index: str) -> str:
+#-TODO: MAKE ENUM -- COMPX, DJI, SPX.X
     """Market mover endpoint"""
     return market_data + index + "/movers"
 

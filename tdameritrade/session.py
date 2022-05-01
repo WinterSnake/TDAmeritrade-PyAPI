@@ -123,8 +123,12 @@ class ClientSession(aiohttp.ClientSession):
     async def get_orders(
         self, account_id: int | None = None, max_results: int | None = None,
         from_date: date | None = None, to_date: date | None = None,
-        status: str = None  # -TODO: MAKE ENUM
+        status: str | None = None
     ) -> aiohttp.ClientResponse:
+    #-TODO: MAKE 'status' ENUM
+    # -- AWAITING_CONDITION, AWAITING_PARENT_ORDER, AWAITING_REVIEW, AWAITING_UR_OUT,
+    # -- ACCEPTED, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
+    # -- CANCELLED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED
         '''Return HTTP response of orders endpoint'''
         url: str
         params: Request_OrdersDict = {}

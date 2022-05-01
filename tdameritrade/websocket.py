@@ -55,8 +55,9 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
     async def login(
         self, id_: str, source_id: int, token: str,
         company: str, segment: str, domain: str, user_group: str, access_level: str,
-        dt: datetime, acl: str, qos: int = 2  # -TODO: MAKE ENUM
+        dt: datetime, acl: str, qos: int = 2
     ) -> None:
+    # -TODO: MAKE 'qos'  ENUM -- Check QOS method
         '''Login request'''
         self.id = id_
         self.source = source_id
@@ -83,7 +84,9 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
         msg: Request_WebSocketDict = self.create_message("ADMIN", "LOGOUT")
         await self.send_messages(msg)
 
-    async def quality_of_service(self, qos: int) -> None:  # -TODO: MAKE ENUM
+    async def quality_of_service(self, qos: int) -> None:
+    #-TODO: MAKE ENUM -- EXPRESS=0, REALTIME=1, FAST=2, MODERATE=3, SLOW=4, DELAYED=5
+    # EXPRESS=500ms, REALTIME=750ms, FAST=1000ms, MODERATE=1500ms, SLOW=3000ms, DELAYED=5000ms
         '''Data rate speed change request'''
         msg: Request_WebSocketDict = self.create_message("ADMIN", "QOS", qoslevel=qos)
         await self.send_messages(msg)
