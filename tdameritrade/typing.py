@@ -13,13 +13,13 @@ from typing import Any, TypedDict
 
 ## Classes
 class ExpirationDict(TypedDict):
-    """Session expiration timestamp structure"""
+    """Internal timestamp expiration structure"""
     access: datetime
     refresh: datetime
 
 
 class Request_AuthorizationDict(TypedDict, total=False):
-    """Session internal authorization structure"""
+    """Internal session authorization request structure"""
     access_type: str
     client_id: str  # REQUIRED
     code: str
@@ -29,7 +29,7 @@ class Request_AuthorizationDict(TypedDict, total=False):
 
 
 class Request_OrdersDict(TypedDict, total=False):
-    """Session expiration timestamp structure"""
+    """Internal order request structure"""
     fromEnteredTime: str
     maxResults: int
     status: str
@@ -37,10 +37,20 @@ class Request_OrdersDict(TypedDict, total=False):
 
 
 class Request_WebSocketDict(TypedDict):
-    """WebSocket request message structure"""
+    """WebSocket message request structure"""
     account: str
     command: str
     parameters: dict[str, Any]
     requestid: int
     service: str
     source: int
+
+
+class Response_AuthorizationDict(TypedDict):
+    """Internal session authorization response structure"""
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    refresh_token_expires_in: int
+    scope: str
+    token_type: str

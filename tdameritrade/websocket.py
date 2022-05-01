@@ -8,6 +8,7 @@
 
 ## Imports
 from datetime import datetime
+from typing import Any
 from urllib.parse import urlencode
 
 import aiohttp
@@ -20,7 +21,7 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
     """TDAmeritrade Client WebSocket"""
 
     # -Constructor
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.id: str = None  #type: ignore
         self.source: int = None  #type: ignore
@@ -28,7 +29,7 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
 
     # -Instance Methods: Public - Handle
     def create_message(
-        self, service: str, command: str, **kwargs
+        self, service: str, command: str, **kwargs: Any
     ) -> Request_WebSocketDict:
         '''Create a formatted message request for sending'''
         request: Request_WebSocketDict = {
@@ -49,7 +50,7 @@ class ClientWebSocket(aiohttp.ClientWebSocketResponse):
         if not isinstance(requests, list):
             requests = [requests]
         await self.send_json({'requests': requests})
-
+ 
     # -Instance Methods: Public - TDAmeritrade
     # --Admin
     async def login(

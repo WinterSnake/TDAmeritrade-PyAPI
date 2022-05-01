@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from datetime import (
     date, datetime, timedelta, timezone
 )
-from typing import Type
+from typing import Any, Type
 from urllib.parse import unquote
 
 import aiohttp
@@ -20,7 +20,8 @@ from yarl import URL
 from . import urls
 from .typing import (
     ExpirationDict,
-    Request_AuthorizationDict, Request_OrdersDict
+    Request_AuthorizationDict, Request_OrdersDict,
+    Response_AuthorizationDict
 )
 from .websocket import ClientWebSocket
 
@@ -35,7 +36,8 @@ class ClientSession(aiohttp.ClientSession):
     # -Constructor
     def __init__(
         self, id_: str, callback_address: tuple[str, int],
-        websocket: Type[aiohttp.ClientWebSocketResponse] = ClientWebSocket, **kwargs
+        websocket: Type[aiohttp.ClientWebSocketResponse] = ClientWebSocket,
+        **kwargs: Any
     ) -> None:
         super().__init__(
             urls.base, raise_for_status=True,
@@ -52,7 +54,7 @@ class ClientSession(aiohttp.ClientSession):
         auth_dict['client_id'] = self.authorization_id
         async with self.post(urls.v1.oauth2, data=auth_dict) as response:
             dt_utc: datetime = datetime.utcnow().replace(tzinfo=timezone.utc)
-            response_dict: dict = await response.json()
+            response_dict: Response_AuthorizationDict = await response.json()
             # -Handle: Access Token
             self.headers.update({
                 'AUTHORIZATION': f"Bearer {response_dict['access_token']}"
