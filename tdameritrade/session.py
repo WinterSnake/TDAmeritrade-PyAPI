@@ -64,7 +64,7 @@ class ClientSession(aiohttp.ClientSession):
             url = self._base_url.join(url)
         return url
 
-    # -Instance Methods: Public
+    # -Instance Methods: Public - Authorization
     async def renew_tokens(self, renew_refresh_token: bool = False) -> None:
         '''Renew access (and optionally refresh) tokens'''
         auth_dict: AuthorizationDict = {
@@ -84,6 +84,42 @@ class ClientSession(aiohttp.ClientSession):
             'redirect_uri': self.callback_url,
         }
         await self._authorize(auth_dict)
+
+    # -Instance Methods: Public - TDAmeritrade
+    # --Accounts
+    async def get_accounts(
+        self, account_id: int | None = None, orders: bool = False, positions: bool = False
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of account URLs'''
+        fields: list[str] = []
+        if orders:
+            fields.append("orders")
+        if positions:
+            fields.append("positions")
+        return await self._session.get(
+            urls.v1.accounts(account_id),
+            params={'fields': ','.join(field for field in fields)}
+        )
+
+    # --User Principals/Preferences
+    async def get_user_principals(
+        self, preferences: bool = False, streamer_keys: bool = False,
+        streamer_info: bool = False, surrogate_ids: bool = False
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of user principals URL'''
+        fields: list[str] = []
+        if preferences:
+            fields.append("preferences")
+        if streamer_keys:
+            fields.append("streamerSubscriptionKeys")
+        if streamer_info:
+            fields.append("streamerConnectionInfo")
+        if surrogate_ids:
+            fields.append("surrogateIds")
+        return await self.get(
+            urls.v1.user_principals(),
+            params={'fields': ','.join(field for field in fields)}
+        )
 
     # -Properties
     @property

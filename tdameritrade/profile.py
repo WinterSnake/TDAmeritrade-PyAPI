@@ -41,36 +41,3 @@ class Profile:
             stream_info['acl'], quality_of_service
         )
         return websocket
-
-    async def get_accounts(
-        self, account: int | None = None, orders: bool = False, positions: bool = False
-    ) -> None:
-        '''Get account/s'''
-        fields: list[str] = []
-        if orders:
-            fields.append("orders")
-        if positions:
-            fields.append("positions")
-        return await self._session.get(
-            urls.v1.accounts(account),
-            params={'fields': ','.join(field for field in fields)}
-        )
-
-    async def get_user_principals(
-        self, preferences: bool = False, streamer_keys: bool = False,
-        streamer_info: bool = False, surrogate_ids: bool = False
-    ) -> None:
-        '''Get user principals and additional information for profile and accounts'''
-        fields: list[str] = []
-        if preferences:
-            fields.append("preferences")
-        if streamer_keys:
-            fields.append("streamerSubscriptionKeys")
-        if streamer_info:
-            fields.append("streamerConnectionInfo")
-        if surrogate_ids:
-            fields.append("surrogateIds")
-        return await self._session.get(
-            urls.v1.user_principals(),
-            params={'fields': ','.join(field for field in fields)}
-        )
