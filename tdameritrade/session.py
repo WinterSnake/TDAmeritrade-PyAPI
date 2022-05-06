@@ -49,6 +49,14 @@ class ClientSession(aiohttp.ClientSession):
         self.expirations: ExpirationDict = {'access': None, 'refresh': None}  #type: ignore
 
     # -Instance Methods: Private
+    # --Internal
+    def _build_url(self, url: str | URL) -> URL:
+        url = URL(url)
+        if self._base_url and not url.is_absolute():
+            url = self._base_url.join(url)
+        return url
+
+    # --Authorization
     async def _authorize(self, auth_dict: Request_AuthorizationDict) -> None:
         '''Internal authorization handling'''
         auth_dict['client_id'] = self.authorization_id
@@ -70,13 +78,43 @@ class ClientSession(aiohttp.ClientSession):
                 seconds=response_dict['refresh_token_expires_in']
             )
 
-    def _build_url(self, url: str | URL) -> URL:
-        url = URL(url)
-        if self._base_url and not url.is_absolute():
-            url = self._base_url.join(url)
-        return url
+    # --Accounts
+    async def _account(
+        self, url: str, orders: bool, positions: bool
+    ) -> aiohttp.ClientResponse:
+        '''Internal'''
+        fields: list[str] = []
+        if orders:
+            fields.append("orders")
+        if positions:
+            fields.append("positions")
+        return await self.get(
+            url, params={'fields': ','.join(field for field in fields)}
+        )
 
-    # -Instance Methods: Public - Authorization
+    # --Orders
+    async def _orders(
+        self, url: str, from_date: date | None, max_results: int | None,
+        status: str | None, to_date: date | None
+    ) -> aiohttp.ClientResponse:
+        '''Internal'''
+    #-TODO: MAKE 'status' ENUM
+    # -- AWAITING_CONDITION, AWAITING_PARENT_ORDER, AWAITING_REVIEW, AWAITING_UR_OUT,
+    # -- ACCEPTED, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
+    # -- CANCELLED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED
+        params: Request_OrdersDict = {}
+        if from_date:
+            params['fromEnteredTime'] = from_date.strftime(FORMAT_DATE)
+        if max_results:
+            params['maxResults'] = max_results
+        if status:
+            params['status'] = status
+        if to_date:
+            params['toEnteredTime'] = to_date.strftime(FORMAT_DATE)
+        return await self.get(url, params=params)
+
+    # -Instance Methods: Public
+    # --Authorization
     async def renew_tokens(self, renew_refresh_token: bool = False) -> None:
         '''Renew access (and optionally refresh) tokens'''
         auth_dict: Request_AuthorizationDict = {
@@ -97,21 +135,18 @@ class ClientSession(aiohttp.ClientSession):
         }
         await self._authorize(auth_dict)
 
-    # -Instance Methods: Public - TDAmeritrade
     # --Accounts
-    async def get_accounts(
-        self, account_id: int | None = None, orders: bool = False, positions: bool = False
+    async def get_account(
+        self, account_id: int, orders: bool = False, positions: bool = False
     ) -> aiohttp.ClientResponse:
-        '''Return HTTP response of account/s endpoint'''
-        fields: list[str] = []
-        if orders:
-            fields.append("orders")
-        if positions:
-            fields.append("positions")
-        return await self.get(
-            urls.v1.accounts(account_id),
-            params={'fields': ','.join(field for field in fields)}
-        )
+        '''Return HTTP response of account endpoint'''
+        return await self._account(urls.v1.accounts(account_id), orders, positions)
+
+    async def get_accounts(
+        self, orders: bool = False, positions: bool = False
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of accounts endpoint'''
+        return await self._account(urls.v1.accounts(), orders, positions)
 
     # --Orders
     async def cancel_order(self, account_id: int, order_id: int) -> None:
@@ -122,31 +157,24 @@ class ClientSession(aiohttp.ClientSession):
         '''Return HTTP response of order endpoint'''
         return await self.get(urls.v1.orders(account_id, order_id))
 
-    async def get_orders(
-        self, account_id: int | None = None, max_results: int | None = None,
-        from_date: date | None = None, to_date: date | None = None,
-        status: str | None = None
+    async def get_orders_by_path(
+        self, account_id: int, from_date: date | None = None,
+        max_results: int | None = None, status: str | None = None,
+        to_date: date | None = None
     ) -> aiohttp.ClientResponse:
-    #-TODO: MAKE 'status' ENUM
-    # -- AWAITING_CONDITION, AWAITING_PARENT_ORDER, AWAITING_REVIEW, AWAITING_UR_OUT,
-    # -- ACCEPTED, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
-    # -- CANCELLED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED
         '''Return HTTP response of orders endpoint'''
-        url: str
-        params: Request_OrdersDict = {}
-        if account_id is None:
-            url = urls.v1.orders()
-        else:
-            url = urls.v1.orders(account_id)
-        if from_date:
-            params['fromEnteredTime'] = from_date.strftime(FORMAT_DATE)
-        if max_results:
-            params['maxResults'] = max_results
-        if status:
-            params['status'] = status
-        if to_date:
-            params['toEnteredTime'] = to_date.strftime(FORMAT_DATE)
-        return await self.get(url, params=params)
+        return await self._orders(
+            urls.v1.orders(account_id), from_date, max_results, status, to_date
+        )
+
+    async def get_orders_by_query(
+        self, from_date: date | None = None, max_results: int | None = None,
+        status: str | None = None, to_date: date | None = None
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of orders endpoint'''
+        return await self._orders(
+            urls.v1.orders(), from_date, max_results, status, to_date
+        )
 
     async def place_order(self, account_id: int) -> aiohttp.ClientResponse:
         '''Place order and return HTTP response of order endpoint'''
