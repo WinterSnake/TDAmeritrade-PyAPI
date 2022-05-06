@@ -162,6 +162,7 @@ class ClientSession(aiohttp.ClientSession):
         max_results: int | None = None, status: str | None = None,
         to_date: date | None = None
     ) -> aiohttp.ClientResponse:
+    # -TODO: MAKE 'status'  ENUM -- Check _orders method
         '''Return HTTP response of orders endpoint'''
         return await self._orders(
             urls.v1.orders(account_id), from_date, max_results, status, to_date
@@ -171,6 +172,7 @@ class ClientSession(aiohttp.ClientSession):
         self, from_date: date | None = None, max_results: int | None = None,
         status: str | None = None, to_date: date | None = None
     ) -> aiohttp.ClientResponse:
+    # -TODO: MAKE 'status'  ENUM -- Check _orders method
         '''Return HTTP response of orders endpoint'''
         return await self._orders(
             urls.v1.orders(), from_date, max_results, status, to_date
@@ -183,6 +185,42 @@ class ClientSession(aiohttp.ClientSession):
     async def replace_order(self, account_id: int, order_id: int) -> aiohttp.ClientResponse:
         '''Replace order and return HTTP response of order endpoint'''
         raise NotImplementedError("ClientSession.replace_order")
+
+    # --Stocks
+    async def get_quote(self, symbol: str) -> aiohttp.ClientResponse:
+        '''Return HTTP response of quote endpoint'''
+        return await self.get(urls.v1.quotes(symbol))
+
+    async def get_quotes(self, symbols: Sequence[str]) -> aiohttp.ClientResponse:
+        '''Return HTTP response of quotes endpoint'''
+        return await self.get(
+            urls.v1.quotes(), params={'symbol': ','.join(symbol for symbol in symbols)}
+        )
+
+    async def get_price_history(
+        self, symbol: str, frequency: tuple[str, int],
+        extended_hours: bool = False, from_date: date | None = None,
+        period: tuple[str, int] | None = None, to_date: date | None = None
+    ) -> aiohttp.ClientResponse:
+    # -TODO: MAKE 'frequency' ENUM -- MINUTE, WEEKLY, MONTHLY
+    # -TODO: MAKE 'period' ENUM -- DAY, MONTH, YEAR, YEAR_TO_DATE
+        '''Return HTTP response of historicals endpoint'''
+        params = {
+            'frequency': frequency[1],
+            'frequencyType': frequency[0],
+        }
+        if extended_hours:
+            params['needExtendedHoursData'] = extended_hours
+        if from_date:
+            dt = datetime(from_date.year, from_date.month, from_date.day)
+            params['startDate'] = int(dt.timestamp() * 1000)
+        if period:
+            params['period'] = period[1]
+            params['periodType'] = period[0]
+        if to_date:
+            dt = datetime(to_date.year, to_date.month, to_date.day)
+            params['endDate'] = int(dt.timestamp() * 1000)
+        return await self.get(urls.v1.historicals(symbol), params=params)
 
     # --User Principals/Preferences
     async def get_preferences(self, account_id: int) -> aiohttp.ClientResponse:
