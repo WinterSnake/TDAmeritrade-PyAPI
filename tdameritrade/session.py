@@ -35,14 +35,11 @@ class ClientSession(aiohttp.ClientSession):
 
     # -Constructor
     def __init__(
-        self, id_: str, callback_address: tuple[str, int],
-        websocket: Type[aiohttp.ClientWebSocketResponse] = ClientWebSocket,
-        **kwargs: Any
+        self, id_: str, callback_address: tuple[str, int], **kwargs: Any
     ) -> None:
-        super().__init__(
-            urls.base, raise_for_status=True,
-            ws_response_class=websocket, **kwargs
-        )
+        if 'ws_response_class' not in kwargs:
+            kwargs['ws_response_class'] = ClientWebSocket
+        super().__init__(urls.base, raise_for_status=True, **kwargs)
         self.id: str = id_
         self.callback_address: tuple[str, int] = callback_address
         self.refresh_token: str = None  #type: ignore
@@ -58,8 +55,10 @@ class ClientSession(aiohttp.ClientSession):
 
     # --Authorization
     async def _authorize(self, auth_dict: Request_AuthorizationDict) -> None:
-        '''Internal authorization handling'''
+        '''Internal authorization endpoint call'''
         auth_dict['client_id'] = self.authorization_id
+        if 'AUTHORIZATION' in self.headers:
+            self.headers.pop('AUTHORIZATION')
         async with self.post(urls.v1.oauth2, data=auth_dict) as response:
             dt_utc: datetime = datetime.utcnow().replace(tzinfo=timezone.utc)
             response_dict: Response_AuthorizationDict = await response.json()
@@ -82,7 +81,7 @@ class ClientSession(aiohttp.ClientSession):
     async def _account(
         self, url: str, orders: bool, positions: bool
     ) -> aiohttp.ClientResponse:
-        '''Internal'''
+        '''Internal account endpoint call'''
         fields: list[str] = []
         if orders:
             fields.append("orders")
@@ -91,27 +90,6 @@ class ClientSession(aiohttp.ClientSession):
         return await self.get(
             url, params={'fields': ','.join(field for field in fields)}
         )
-
-    # --Orders
-    async def _orders(
-        self, url: str, from_date: date | None, max_results: int | None,
-        status: str | None, to_date: date | None
-    ) -> aiohttp.ClientResponse:
-        '''Internal'''
-    #-TODO: MAKE 'status' ENUM
-    # -- AWAITING_CONDITION, AWAITING_PARENT_ORDER, AWAITING_REVIEW, AWAITING_UR_OUT,
-    # -- ACCEPTED, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
-    # -- CANCELLED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED
-        params: Request_OrdersDict = {}
-        if from_date:
-            params['fromEnteredTime'] = from_date.strftime(FORMAT_DATE)
-        if max_results:
-            params['maxResults'] = max_results
-        if status:
-            params['status'] = status
-        if to_date:
-            params['toEnteredTime'] = to_date.strftime(FORMAT_DATE)
-        return await self.get(url, params=params)
 
     # -Instance Methods: Public
     # --Authorization
@@ -125,7 +103,7 @@ class ClientSession(aiohttp.ClientSession):
             auth_dict['access_type'] = "offline"
         await self._authorize(auth_dict)
 
-    async def request_tokens(self, code: str, decode: bool = True) -> None:
+    async def request_tokens(self, code: str, *, decode: bool = True) -> None:
         '''Request initial access + refresh tokens'''
         auth_dict: Request_AuthorizationDict = {
             'access_type': "offline",
@@ -137,19 +115,23 @@ class ClientSession(aiohttp.ClientSession):
 
     # --Accounts
     async def get_account(
-        self, account_id: int, orders: bool = False, positions: bool = False
+        self, *, account_id: int | None, orders: bool = False, positions: bool = False
     ) -> aiohttp.ClientResponse:
         '''Return HTTP response of account endpoint'''
         return await self._account(urls.v1.accounts(account_id), orders, positions)
 
     async def get_accounts(
-        self, orders: bool = False, positions: bool = False
+        self, *, orders: bool = False, positions: bool = False
     ) -> aiohttp.ClientResponse:
         '''Return HTTP response of accounts endpoint'''
         return await self._account(urls.v1.accounts(), orders, positions)
 
     # --Orders
-    async def cancel_order(self, account_id: int, order_id: int) -> None:
+    async def create_order(self, account_id: int, symbol: str) -> aiohttp.ClientResponse:
+        '''Place order and return HTTP response of order endpoint'''
+        raise NotImplementedError("ClientSession.create_order")
+
+    async def delete_order(self, account_id: int, order_id: int) -> None:
         '''Cancel order'''
         await self.delete(urls.v1.orders(account_id, order_id))
 
@@ -157,36 +139,32 @@ class ClientSession(aiohttp.ClientSession):
         '''Return HTTP response of order endpoint'''
         return await self.get(urls.v1.orders(account_id, order_id))
 
-    async def get_orders_by_path(
-        self, account_id: int, from_date: date | None = None,
+    async def get_orders(
+        self, *, account_id: int | None = None, from_date: date | None = None,
         max_results: int | None = None, status: str | None = None,
         to_date: date | None = None
     ) -> aiohttp.ClientResponse:
-    # -TODO: MAKE 'status'  ENUM -- Check _orders method
+    #-TODO: MAKE 'status' ENUM
+    # -- AWAITING_CONDITION, AWAITING_PARENT_ORDER, AWAITING_REVIEW, AWAITING_UR_OUT,
+    # -- ACCEPTED, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
+    # -- CANCELLED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED
         '''Return HTTP response of orders endpoint'''
-        return await self._orders(
-            urls.v1.orders(account_id), from_date, max_results, status, to_date
-        )
-
-    async def get_orders_by_query(
-        self, from_date: date | None = None, max_results: int | None = None,
-        status: str | None = None, to_date: date | None = None
-    ) -> aiohttp.ClientResponse:
-    # -TODO: MAKE 'status'  ENUM -- Check _orders method
-        '''Return HTTP response of orders endpoint'''
-        return await self._orders(
-            urls.v1.orders(), from_date, max_results, status, to_date
-        )
-
-    async def place_order(self, account_id: int) -> aiohttp.ClientResponse:
-        '''Place order and return HTTP response of order endpoint'''
-        raise NotImplementedError("ClientSession.place_order")
+        params: Request_OrdersDict = {}
+        if from_date:
+            params['fromEnteredTime'] = from_date.strftime(FORMAT_DATE)
+        if max_results:
+            params['maxResults'] = max_results
+        if status:
+            params['status'] = status
+        if to_date:
+            params['toEnteredTime'] = to_date.strftime(FORMAT_DATE)
+        return await self.get(urls.v1.orders(account_id), params=params)
 
     async def replace_order(self, account_id: int, order_id: int) -> aiohttp.ClientResponse:
         '''Replace order and return HTTP response of order endpoint'''
         raise NotImplementedError("ClientSession.replace_order")
 
-    # --Stocks
+    # --Symbols
     async def get_quote(self, symbol: str) -> aiohttp.ClientResponse:
         '''Return HTTP response of quote endpoint'''
         return await self.get(urls.v1.quotes(symbol))
@@ -198,7 +176,7 @@ class ClientSession(aiohttp.ClientSession):
         )
 
     async def get_price_history(
-        self, symbol: str, frequency: tuple[str, int],
+        self, symbol: str, frequency: tuple[str, int], *,
         extended_hours: bool = False, from_date: date | None = None,
         period: tuple[str, int] | None = None, to_date: date | None = None
     ) -> aiohttp.ClientResponse:
@@ -227,15 +205,19 @@ class ClientSession(aiohttp.ClientSession):
         '''Return HTTP response of account preferences endpoint'''
         return await self.get(urls.v1.preferences(account_id))
 
-    async def get_streamer_keys(self, account_ids: Sequence[int]) -> aiohttp.ClientResponse:
+    async def get_streamer_keys(
+        self, account_ids: Sequence[int] | None = None
+    ) -> aiohttp.ClientResponse:
         '''Return HTTP response of streamer keys endpoint'''
+        params: dict[str, str] = {}
+        if account_ids:
+            params['accountIds'] = ','.join(str(account_id) for account_id in account_ids)
         return await self.get(
-            urls.v1.user_principals(subscription_keys=True),
-            params={'accountIds': ','.join(str(account_id) for account_id in account_ids)}
+            urls.v1.user_principals(subscription_keys=True), params=params
         )
 
     async def get_user_principals(
-        self, preferences: bool = False, streamer_info: bool = False,
+        self, *, preferences: bool = False, streamer_info: bool = False,
         streamer_keys: bool = False, surrogate_ids: bool = False
     ) -> aiohttp.ClientResponse:
         '''Return HTTP response of user principals endpoint'''
@@ -256,6 +238,37 @@ class ClientSession(aiohttp.ClientSession):
     async def update_preferences(self, account_id: int) -> None:
         '''Update account preferences'''
         raise NotImplementedError("Session.update_preferences")
+
+    # --Watchlist
+    async def create_watchlist(self, account_id: int) -> aiohttp.ClientResponse:
+        '''Place order and return HTTP response of order endpoint'''
+        raise NotImplementedError("Session.create_watchlist")
+
+    async def delete_watchlist(
+        self, account_id: int, watchlist_id: int
+    ) -> None:
+        '''Delete watchlist'''
+        await self.delete(urls.v1.watchlists(account_id, watchlist_id))
+
+    async def get_watchlist(
+        self, account_id: int, watchlist_id: int
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of watchlist endpoint'''
+        return await self.get(urls.v1.watchlists(account_id, watchlist_id))
+
+    async def get_watchlists(
+        self, account_id: int | None = None
+    ) -> aiohttp.ClientResponse:
+        '''Return HTTP response of watchlists endpoint'''
+        return await self.get(urls.v1.watchlists(account_id))
+
+    async def replace_watchlist(self, account_id: int, watchlist_id: int):
+        '''Replace watchlist and return HTTP response of watchlist endpoint'''
+        raise NotImplementedError("Session.replace_watchlist")
+
+    async def update_watchlist(self, account_id: int, watchlist_id: int):
+        '''Update watchlist and return HTTP response of watchlist endpoint'''
+        raise NotImplementedError("Session.update_watchlist")
 
     # -Properties
     @property
